@@ -27,7 +27,7 @@ To set up this environment and install EARSHOT in it, use:
 cd Code/EARSHOT-MEG
 mamba env create --file env.yml
 mamba activate earshot
-pip install -e .
+pip install .
 ```
 
 Installing EARSHOT compiles a Cython extension, which requires a C compiler.
