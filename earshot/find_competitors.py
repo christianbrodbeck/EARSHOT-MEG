@@ -6,7 +6,7 @@ import pickle
 from typing import List, Literal
 
 
-from .earshot_lexicon import DATA_DIR, read_pronunciations
+from .earshot_lexicon import get_data_dir, read_pronunciations
 
 
 def read_competitors(
@@ -15,7 +15,7 @@ def read_competitors(
 ):
     if lexicon == 'burgundy':
         lexicon = 'MALD-NEIGHBORS-1000'
-    path = DATA_DIR / f'competitors-{lexicon}'
+    path = get_data_dir() / f'competitors-{lexicon}'
     with path.open('rb') as file:
         competitors = pickle.load(file)
     if words is None or len(competitors) == len(words):
@@ -75,6 +75,6 @@ def find_competitors(
                 competitors['unrelated'].append(other.graphs)
         out[word.graphs] = competitors
 
-    path = DATA_DIR / f'competitors-{lexicon}'
+    path = get_data_dir() / f'competitors-{lexicon}'
     with path.open('wb') as file:
         pickle.dump(out, file, pickle.HIGHEST_PROTOCOL)

@@ -30,8 +30,8 @@ from tensorflow.keras.utils import set_random_seed
 from . import earshot_lexicon
 from . import _op
 from . import combinatorics
-from ._loss import CohortWeightedLoss, DownWeightCompetitors
-from .earshot_lexicon import DATA_DIR, VOWELS, PHONES
+from ._loss import DownWeightCompetitors
+from .earshot_lexicon import BUILTIN_DATA_DIR, VOWELS, PHONES, get_data_dir
 from .glove import read_glove
 from .mykeras import Backtrack, Subset
 
@@ -193,6 +193,37 @@ class Target:
         return softmax(dist, 1, cool, True)
 
 
+def burgundy_data_dir() -> Path:
+    "Data for the Burgundy/MALD lexicons: ``Burgundy`` subdirectory of the data directory if it exists"
+    data_dir = get_data_dir()
+    if (data_dir / 'Burgundy').is_dir():
+        return data_dir / 'Burgundy'
+    return data_dir
+
+
+class GammatoneInputs(dict):
+    """Gammatone spectrograms as ``{(speaker, word): array}`` with shape ``(time, frequency)``
+
+    Spectrograms are loaded from disk the first time they are accessed, so only
+    files for tokens that are actually used need to exist.
+    """
+    def __init__(self, root: Path):
+        super().__init__()
+        self.root = root
+
+    def path(self, speaker: str, word: str) -> Path:
+        dirname = speaker if speaker == 'MALD' else speaker.title()
+        return self.root / dirname / f'{word}_{speaker}.pickle'
+
+    def __missing__(self, key: Tuple[str, str]) -> numpy.ndarray:
+        path = self.path(*key)
+        if not path.exists():
+            raise FileNotFoundError(f"No spectrogram for {key} at {path}; use earshot.set_data_dir() or the EARSHOT_DATA_DIR environment variable to set the EARSHOT data directory")
+        with path.open('rb') as file:
+            self[key] = gt = pickle.load(file).T
+        return gt
+
+
 @dataclasses.dataclass()
 class Lexicon:
     """
@@ -232,7 +263,7 @@ class Lexicon:
         mald_tag = None
         if self.name.isnumeric():
             self.base_name = 'earshot'
-            self.data_dir = DATA_DIR
+            self.data_dir = get_data_dir()
             self.n_words = int(self.name)
             self._split = 'even'
         elif match := re.match(r'MALD-(1000)(?:-(test|train|nomald(?:-\d+)?))?$', self.name):
@@ -253,17 +284,20 @@ class Lexicon:
                 raise ValueError(f'{self.name=}')
             assert self._mald_cutoff == '1000'
             self.base_name = 'MALD-NEIGHBORS-1000'
-            self.data_dir = DATA_DIR / 'Burgundy'
+            self.data_dir = burgundy_data_dir()
         elif match := re.match('burgundy-(test|train)', self.name):
             self.n_words = 1000
             self._split = match.group(1)
             self.base_name = 'burgundy'
-            self.data_dir = DATA_DIR / 'Burgundy'
+            self.data_dir = burgundy_data_dir()
         else:
             raise ValueError(f'{self.name=}')
 
         # Speakers
+        # NOTE: the order of speakers determines the train/test split (see ._split_items())
         path = self.data_dir / 'Speakers.txt'
+        if not path.exists() and self.base_name != 'earshot':
+            path = BUILTIN_DATA_DIR / 'Speakers-Burgundy.txt'
         self.speakers = path.read_text().splitlines()
         if mald_tag == 'nomald':
             self.speakers = [s for s in self.speakers if s != 'MALD']
@@ -415,16 +449,13 @@ class Lexicon:
     def speaker_target(self) -> Target:
         return Target('speaker', self.speakers)
 
+    @property
+    def gammatone_dir(self) -> Path:
+        return self.data_dir / f'GAMMATONE_{self.n_bands}_100'
+
     @cached_property
     def inputs(self) -> Dict[Tuple[str, str], numpy.ndarray]:  # (time, frequency)
-        gammatone_root = self.data_dir / f'GAMMATONE_{self.n_bands}_100'
-        gts = {}
-        for speaker, word in product(self.speakers, self.words):
-            dirname = speaker if speaker == 'MALD' else speaker.title()
-            path = gammatone_root / dirname / f'{word}_{speaker}.pickle'
-            with path.open('rb') as file:
-                gts[speaker, word] = pickle.load(file).T
-        return gts
+        return GammatoneInputs(self.gammatone_dir)
 
     def phone_target(
             self,
@@ -643,7 +674,7 @@ class Model:
         stimulus_desc = '-'.join(stimulus_items)
         # name for paths
         self.name = f"{model_desc} {self.target_space}-{self.target_shape} {stimulus_desc}"
-        self.model_dir = DATA_DIR / 'Models' / self.name
+        self.model_dir = get_data_dir() / 'Models' / self.name
 
     @classmethod
     def from_args(cls, args: argparse.Namespace):

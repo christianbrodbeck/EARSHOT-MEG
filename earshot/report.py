@@ -7,7 +7,6 @@ import matplotlib.cm
 import numpy
 from eelbrain import fmtxt, load, plot, Case, Dataset, NDVar, UTS
 
-from .earshot_lexicon import DATA_DIR
 from .train_earshot import SNR, Model, Word, gen_words
 
 
@@ -79,7 +78,7 @@ class Example:
     ) -> (List, Dataset):
         # load results
         ext = f' cool-{cool:g}' if cool else ''
-        results = load.unpickle(DATA_DIR / 'Models' / self.trainer.name / f'eval {stimuli}{ext}.pickle')
+        results = load.unpickle(self.trainer.model_dir / f'eval {stimuli}{ext}.pickle')
         # Add n correct
         rows = []
         for r in results:
