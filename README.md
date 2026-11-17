@@ -21,12 +21,14 @@ Brodbeck, C., Hannagan, T., & Magnuson, J.S. (2025). Recurrent neural networks a
 
 Models were estimated using the environment in [env.yml](env.yml).
 
-To set up this environment and install EARSHOT in it, use::
+To set up this environment and install EARSHOT in it, use:
 
-  % cd Code/EARSHOT-MEG        
-  % mamba env create --file env.yml 
-  % mamba activate earshot
-  % pip install -e .
+```bash
+cd Code/EARSHOT-MEG
+mamba env create --file env.yml
+mamba activate earshot
+pip install -e .
+```
 
 Installing EARSHOT compiles a Cython extension, which requires a C compiler.
 On macOS, use the Xcode Command Line Tools (`xcode-select --install`); on Linux, use the system's `gcc`.
@@ -36,26 +38,32 @@ On macOS, use the Xcode Command Line Tools (`xcode-select --install`); on Linux,
 Spectrograms and trained models are not part of this repository.
 `earshot` looks for them in a data directory, by default `~/Data/EARSHOT`.
 To use a different location, set the `EARSHOT_DATA_DIR` environment variable, or call `earshot.set_data_dir(path)` before creating a `Model` or `Lexicon`.
-The data directory is organized as follows::
+The data directory is organized as follows:
 
-  EARSHOT/
-  ├── GAMMATONE_64_100/         (spectrograms: <Speaker>/<WORD>_<SPEAKER>.pickle)
-  ├── Models/                   (one directory per trained model)
-  └── Speakers.txt              (optional; defaults to the speakers used in the paper)
+```text
+EARSHOT/
+├── GAMMATONE_64_100/         (spectrograms: <Speaker>/<WORD>_<SPEAKER>.pickle)
+├── Models/                   (one directory per trained model)
+└── Speakers.txt              (optional; defaults to the speakers used in the paper)
+```
 
 ## Demo
 
 [examples/demo.py](examples/demo.py) is a [marimo](https://marimo.io) notebook which creates a stimulus by concatenating words, runs it through a pretrained model, and plots the input, output and hidden layer activity.
-With the data in place (see [Data](#data)), open it with::
+With the data in place (see [Data](#data)), open it with:
 
-  % marimo edit examples/demo.py
+```bash
+marimo edit examples/demo.py
+```
 
 ## Model input
 
 The models are trained with gammatone spectrograms.
-To create inputs for the model from wave files, use::
+To create inputs for the model from wave files, use:
 
-  import eelbrain
-  
-  wav = eelbrain.load.wav(path)
-  gt = eelbrain.gammatone_bank(wav, 50, 10000, n=64, tstep=0.01)
+```python
+import eelbrain
+
+wav = eelbrain.load.wav(path)
+gt = eelbrain.gammatone_bank(wav, 50, 10000, n=64, tstep=0.01)
+```
