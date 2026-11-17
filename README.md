@@ -16,6 +16,26 @@ Brodbeck, C., Hannagan, T., & Magnuson, J.S. (2025). Recurrent neural networks a
 - `tests` contains tests for certain functions in `earshot`
 
 
-## Environment
+## Installation/Environment
 
-Models were estimated using the environment in [env.yml](env.yml). 
+Models were estimated using the environment in [env.yml](env.yml).
+
+To set up this environment and install EARSHOT in it, use::
+
+  % cd Code/EARSHOT-MEG        
+  % mamba env create --file env.yml 
+  % mamba activate earshot
+  % pip install -e .
+
+Installing EARSHOT compiles a Cython extension, which requires a C compiler.
+On macOS, use the Xcode Command Line Tools (`xcode-select --install`); on Linux, use the system's `gcc`.
+
+## Model input
+
+The models are trained with gammatone spectrograms.
+To create inputs for the model from wave files, use::
+
+  import eelbrain
+  
+  wav = eelbrain.load.wav(path)
+  gt = eelbrain.gammatone_bank(wav, 50, 10000, n=64, tstep=0.01)
